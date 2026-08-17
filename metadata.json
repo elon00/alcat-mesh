@@ -1,0 +1,7 @@
+{
+  "name": "ALCAT",
+  "description": "ALCAT: Autonomous Web 4.0 multi-agent orchestration platform featuring Conway automaton logic, Algorand X402 M2M micropayments, Post-Quantum Cryptography (ML-KEM & ML-DSA), and RevenueCat monetization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

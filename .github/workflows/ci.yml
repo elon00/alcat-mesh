@@ -1,0 +1,82 @@
+name: ALCAT Production CI/CD & Verification
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  audit-and-build:
+    name: 🛡️ Audit, Test & Production Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci || npm install
+
+      - name: 🔍 TypeScript Static Typecheck & Lint
+        run: npm run lint
+
+      - name: 🧪 Execute ALCAT Verification Suite
+        run: npm test
+
+      - name: 🏗️ Build Production Bundle (Vite Client + Node Server)
+        run: npm run build
+
+      - name: ⚡ Verify Netlify Serverless Artifacts
+        run: |
+          test -f dist/index.html && echo "✓ Frontend index.html ready"
+          test -f netlify.toml && echo "✓ netlify.toml configured"
+          test -f netlify/functions/api.ts && echo "✓ Netlify edge functions ready"
+
+  deploy-preview:
+    name: 🚀 Netlify Deploy Preview
+    needs: audit-and-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🏗️ Build Client Assets
+        run: npm run build:client
+
+      - name: 🌐 Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './dist'
+          functions-dir: './netlify/functions'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy ALCAT Web4 Quantum-Safe Mesh from GitHub Actions"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        continue-on-error: true
