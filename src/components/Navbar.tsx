@@ -1,6 +1,7 @@
-import React from 'react';
-import { ShieldCheck, Cpu, Globe, Zap, Sparkles, CreditCard } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck, Cpu, Globe, Zap, Sparkles, CreditCard, Activity, PlusCircle, Server, Check } from 'lucide-react';
 import { NetworkType, RevenueCatTier, SupportedLanguage } from '../types';
+import confetti from 'canvas-confetti';
 
 interface NavbarProps {
   currentTab: string;
@@ -12,6 +13,8 @@ interface NavbarProps {
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
   walletBalance: { algo: number; eth: number };
+  onClaimFaucet: () => void;
+  onOpenSystemDiagnostics: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +27,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   language,
   setLanguage,
   walletBalance,
+  onClaimFaucet,
+  onOpenSystemDiagnostics,
 }) => {
   const isHi = language === 'hi';
 
@@ -63,10 +68,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Right Controls: Network Selector, Tier Badge, Language Switcher, Wallet Balance */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Right Controls: Network Selector, Faucet, Diagnostics, Tier, Language */}
+          <div className="flex items-center space-x-2 sm:space-x-2.5">
+            {/* System Diagnostics Trigger */}
+            <button
+              onClick={onOpenSystemDiagnostics}
+              className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 text-xs font-mono text-cyan-300 cursor-pointer"
+              title="View Live Network Diagnostics"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Mesh: 24ms</span>
+            </button>
+
             {/* Network Selector */}
-            <div className="hidden md:flex items-center bg-slate-800/80 rounded-lg p-1 border border-slate-700 text-xs">
+            <div className="hidden md:flex items-center bg-slate-800/80 rounded-lg p-0.5 border border-slate-700 text-xs">
               <button
                 id="btn-network-algorand"
                 onClick={() => setNetwork('algorand-testnet')}
@@ -91,13 +106,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {/* Wallet Balance Badge */}
-            <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1 bg-slate-800/90 rounded-lg border border-slate-700 text-xs">
-              <span className="text-emerald-400 font-semibold">
+            {/* Wallet Balance & Faucet Claim Button */}
+            <div className="flex items-center space-x-1.5 bg-slate-800/90 rounded-lg border border-slate-700 px-2.5 py-1 text-xs">
+              <span className="text-emerald-400 font-semibold font-mono">
                 {network === 'algorand-testnet' ? `${walletBalance.algo.toFixed(2)} ALGO` : `${walletBalance.eth.toFixed(3)} ETH`}
               </span>
-              <span className="text-slate-500">|</span>
-              <span className="text-cyan-400 font-mono text-[11px]">Testnet Faucet Active</span>
+              <button
+                id="btn-claim-faucet-quick"
+                onClick={onClaimFaucet}
+                className="text-cyan-400 hover:text-cyan-200 font-bold text-[11px] bg-cyan-950/60 hover:bg-cyan-900/60 px-1.5 py-0.5 rounded border border-cyan-500/30 flex items-center space-x-0.5 cursor-pointer"
+                title="Claim Free Testnet Faucet"
+              >
+                <PlusCircle className="w-3 h-3" />
+                <span className="hidden sm:inline">Faucet</span>
+              </button>
             </div>
 
             {/* RevenueCat Tier Badge */}
@@ -112,10 +134,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <CreditCard className="w-3.5 h-3.5 text-amber-400" />
               <span>
                 {tier === 'free_catvertising'
-                  ? isHi ? 'फ्री (Catvertising)' : 'Free (Catvertising)'
+                  ? isHi ? 'फ्री' : 'Free Tier'
                   : tier === 'pro_agentic'
                   ? 'Pro Agentic'
-                  : 'Quantum Enterprise'}
+                  : 'Enterprise'}
               </span>
             </button>
 
@@ -123,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="btn-language-toggle"
               onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 flex items-center space-x-1"
+              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 flex items-center space-x-1 cursor-pointer"
               title="Toggle Language / भाषा बदलें"
             >
               <Globe className="w-3.5 h-3.5 text-cyan-400" />
@@ -142,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 key={item.id}
                 id={`tab-btn-${item.id}`}
                 onClick={() => setCurrentTab(item.id)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                   active
                     ? 'bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'

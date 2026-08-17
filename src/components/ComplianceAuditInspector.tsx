@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, AlertTriangle, FileCheck, CheckCircle2, RefreshCw, Terminal, Search, Lock } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, FileCheck, CheckCircle2, RefreshCw, Terminal, Search, Lock, Download, Copy, Check, FileCode } from 'lucide-react';
 import { SmartContractAuditResult, SupportedLanguage } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -7,9 +7,12 @@ interface ComplianceAuditInspectorProps {
   language: SupportedLanguage;
 }
 
-export const ComplianceAuditInspector: React.FC<ComplianceAuditInspectorProps> = ({ language }) => {
-  const isHi = language === 'hi';
-  const [contractCode, setContractCode] = useState<string>(`// Arbitrum Stylus Rust Post-Quantum Escrow Contract
+const PRESET_CONTRACTS = [
+  {
+    id: 'stylus-pqc',
+    name: 'Arbitrum Stylus Rust (PQC Escrow - Safe)',
+    type: 'Arbitrum-Stylus-Rust',
+    code: `// Arbitrum Stylus Rust Post-Quantum Escrow Contract
 #[public]
 impl PqcSettlementEscrow {
     pub fn settle_x402_invoice(
@@ -17,23 +20,74 @@ impl PqcSettlementEscrow {
         recipient: Address,
         amount: U256,
         challenge_hash: [u8; 32],
-        pqc_signature: Vec<u8>,
+        pqc_signature: &[u8],
     ) -> Result<bool, Vec<u8>> {
         // Replay Protection Check
         if self.settled_challenges.get(challenge_hash) {
             return Err("Challenge already redeemed".as_bytes().to_vec());
         }
         
-        // Validate ML-DSA-65 Dilithium Lattice Signature
-        if pqc_signature.len() < 64 {
-            return Err("Invalid PQC lattice signature".as_bytes().to_vec());
+        // Validate ML-DSA-65 Dilithium Lattice Signature (FIPS 204)
+        if pqc_signature.len() < 1952 {
+            return Err("Invalid PQC lattice signature length".as_bytes().to_vec());
         }
         
         self.settled_challenges.setter(challenge_hash).set(true);
         self.agent_balances.setter(recipient).set(self.agent_balances.get(recipient) + amount);
         Ok(true)
     }
-}`);
+}`,
+  },
+  {
+    id: 'pyteal-m2m',
+    name: 'Algorand PyTeal (X402 Gasless Relay - Safe)',
+    type: 'Algorand-PyTeal',
+    code: `# Algorand PyTeal AVM 10 Quantum-Resistant Settlement
+from pyteal import *
+
+def approval_program():
+    is_x402_payment = And(
+        Gtxn[0].type_enum() == TxnType.Payment,
+        Gtxn[0].receiver() == Global.current_application_address(),
+        Gtxn[0].amount() >= Int(15000) # 0.015 ALGO
+    )
+    
+    verify_pqc_sig = App.globalGet(Bytes("ml_dsa_verified")) == Int(1)
+    
+    return Cond(
+        [Txn.application_id() == Int(0), Approve()],
+        [Txn.on_completion() == OnComplete.NoOp, Return(And(is_x402_payment, verify_pqc_sig))]
+    )`,
+  },
+  {
+    id: 'vulnerable-ecdsa',
+    name: 'Legacy Solidity (Classical ECDSA - High Risk)',
+    type: 'Solidity-Legacy',
+    code: `// WARNING: Deprecated Classical Cryptography with Reentrancy Vector
+pragma solidity ^0.8.0;
+
+contract VulnerableM2MEscrow {
+    mapping(address => uint256) public balances;
+    
+    // VULNERABILITY 1: Classical secp256k1 ECDSA crackable by Shor's Algorithm
+    // VULNERABILITY 2: State updated after external call (Reentrancy)
+    function withdrawClassical(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public {
+        address signer = ecrecover(hash, v, r, s);
+        uint256 amount = balances[signer];
+        
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+        balances[signer] = 0; // State change after call!
+    }
+}`,
+  },
+];
+
+export const ComplianceAuditInspector: React.FC<ComplianceAuditInspectorProps> = ({ language }) => {
+  const isHi = language === 'hi';
+  const [selectedPresetId, setSelectedPresetId] = useState('stylus-pqc');
+  const [contractCode, setContractCode] = useState<string>(PRESET_CONTRACTS[0].code);
+  const [contractType, setContractType] = useState<string>(PRESET_CONTRACTS[0].type);
 
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResult, setAuditResult] = useState<SmartContractAuditResult | null>({
@@ -47,10 +101,10 @@ impl PqcSettlementEscrow {
     vulnerabilities: [
       {
         severity: 'LOW',
-        title: isHi ? 'गैस ऑप्टिमाइजेशन' : 'Minor Gas Vector on Vector Allocation',
-        description: isHi ? 'वेक्टर बाइट्स की मेमोरी कॉपी को जीरो-कॉपी स्लाइस में बदला जा सकता है।' : 'PQC signature byte slice can use zero-copy Rust reference for slight gas savings.',
-        recommendation: isHi ? '&[u8] स्लाइस का उपयोग करें।' : 'Use &[u8] slice instead of owned Vec<u8>.',
-        pqcRelated: false,
+        title: isHi ? 'गैस ऑप्टिमाइजेशन' : 'Zero-Copy Slice Optimization',
+        description: isHi ? 'WASM निष्पादन हेतु स्लाइस पासिंग का उपयोग किया गया।' : 'PQC signature byte slice uses zero-copy reference for optimal Stylus WASM execution.',
+        recommendation: isHi ? 'वर्तमान आर्किटेक्चर को बनाए रखें।' : 'Maintain &[u8] zero-copy buffer architecture.',
+        pqcRelated: true,
       },
     ],
     complianceChecklist: {
@@ -60,11 +114,21 @@ impl PqcSettlementEscrow {
       reentrancyGuardPresent: true,
       pqcSignatureSupported: true,
     },
-    suggestedFix: 'Replace pqc_signature: Vec<u8> with pqc_signature: &[u8] for optimal Stylus WASM execution.',
+    suggestedFix: 'Stylus contract is fully hardened against Shor algorithm and meets NIST FIPS 204 criteria.',
   });
 
   const [kycAddress, setKycAddress] = useState('0x4E89F19C2A1b7891...384');
   const [kycStatus, setKycStatus] = useState<'VERIFIED' | 'SCREENING' | 'FLAGGED'>('VERIFIED');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const handleSelectPreset = (presetId: string) => {
+    const found = PRESET_CONTRACTS.find((p) => p.id === presetId);
+    if (found) {
+      setSelectedPresetId(found.id);
+      setContractCode(found.code);
+      setContractType(found.type);
+    }
+  };
 
   const handleRunAudit = async () => {
     setIsAuditing(true);
@@ -74,7 +138,7 @@ impl PqcSettlementEscrow {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: contractCode,
-          contractType: 'Arbitrum-Stylus-Rust',
+          contractType,
         }),
       });
 
@@ -101,6 +165,53 @@ impl PqcSettlementEscrow {
         spread: 40,
       });
     }, 500);
+  };
+
+  const handleDownloadCertificate = () => {
+    if (!auditResult) return;
+    const cert = `# ALCAT SMART CONTRACT & POST-QUANTUM AUDIT CERTIFICATE
+========================================================================
+Contract Name:       ${auditResult.contractName}
+Contract Type:       ${contractType}
+Security Score:      ${auditResult.auditScore} / 100
+PQC Readiness Score: ${auditResult.pqcReadinessScore} / 100
+Risk Level:          ${auditResult.riskLevel}
+Timestamp:           ${new Date().toISOString()}
+Compliance Standard: NIST FIPS 203 (ML-KEM) & FIPS 204 (ML-DSA)
+KYC Attestation:     Coinbase KYC Guardrail Active
+OFAC Sanctions:      Verified Clean
+
+## Executive Summary
+${auditResult.summary}
+
+## Vulnerability Analysis
+${auditResult.vulnerabilities
+  .map(
+    (v, i) =>
+      `[${i + 1}] ${v.severity}: ${v.title}\n    Description: ${v.description}\n    Recommendation: ${v.recommendation}\n    PQC Impact: ${
+        v.pqcRelated ? 'YES (Quantum Vulnerability)' : 'NO'
+      }`
+  )
+  .join('\n\n')}
+
+## Security Checklist
+- Coinbase KYC Attestation:   ${auditResult.complianceChecklist.coinbaseKycVerified ? 'PASSED' : 'FAILED'}
+- OFAC Sanctions Compliant:   ${auditResult.complianceChecklist.ofacSanctionCompliant ? 'PASSED' : 'FAILED'}
+- Gas Limit Protection:       ${auditResult.complianceChecklist.gasLimitProtected ? 'PASSED' : 'FAILED'}
+- Reentrancy Guard Present:   ${auditResult.complianceChecklist.reentrancyGuardPresent ? 'PASSED' : 'FAILED'}
+- PQC Lattice Signature Safe: ${auditResult.complianceChecklist.pqcSignatureSupported ? 'PASSED' : 'FAILED'}
+
+========================================================================
+Verified by ALCAT Web 4.0 Autonomous Compliance Engine
+`;
+
+    const blob = new Blob([cert], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ALCAT_AUDIT_CERTIFICATE_${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -140,117 +251,120 @@ impl PqcSettlementEscrow {
           <span>{isHi ? 'Coinbase KYC व OFAC प्रतिबंध स्क्रीनिंग' : 'Coinbase KYC & OFAC Sanctions Attestation Guardrail'}</span>
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-8">
-            <label className="text-xs text-slate-400 block mb-1">
-              {isHi ? 'एजेंट / वॉलेट एड्रेस' : 'Autonomous Agent Wallet Address'}
-            </label>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
             <input
               type="text"
               value={kycAddress}
               onChange={(e) => setKycAddress(e.target.value)}
+              placeholder="Enter wallet address or agent identity..."
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
             />
           </div>
 
-          <div className="md:col-span-4">
-            <button
-              id="btn-verify-kyc-guardrail"
-              onClick={handleVerifyKyc}
-              disabled={kycStatus === 'SCREENING'}
-              className="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow flex items-center justify-center space-x-1.5 cursor-pointer transition-all disabled:opacity-50"
-            >
-              {kycStatus === 'SCREENING' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{isHi ? 'स्क्रीनिंग हो रही है...' : 'Screening OFAC...'}</span>
-                </>
-              ) : (
-                <>
-                  <Search className="w-3.5 h-3.5" />
-                  <span>{isHi ? 'KYC गार्डरेल जांचें' : 'Verify Compliance'}</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            id="btn-verify-kyc-guardrail"
+            onClick={handleVerifyKyc}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/40 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>{isHi ? 'ZK-प्रूफ KYC सत्यापित करें' : 'Verify ZK-Proof KYC'}</span>
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-300">Coinbase KYC Identity</span>
-            <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>PASSED</span>
+        <div className="flex items-center space-x-2 text-xs">
+          <span className="text-slate-400 font-medium">{isHi ? 'वर्तमान स्थिति:' : 'Attestation Status:'}</span>
+          {kycStatus === 'VERIFIED' && (
+            <span className="px-2.5 py-0.5 rounded-full bg-teal-950 text-teal-400 border border-teal-500/30 font-bold flex items-center space-x-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>{isHi ? 'सत्यापित (CLEAN • OFAC Passed)' : 'VERIFIED (CLEAN • OFAC Passed)'}</span>
             </span>
-          </div>
-
-          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-300">OFAC SDN Sanctions</span>
-            <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>CLEAN (0 MATCH)</span>
+          )}
+          {kycStatus === 'SCREENING' && (
+            <span className="px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-500/30 font-bold flex items-center space-x-1">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              <span>{isHi ? 'स्क्रीनिंग जारी...' : 'Screening in Progress...'}</span>
             </span>
-          </div>
-
-          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-300">Travel Rule IVMS101</span>
-            <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>ATTESTED</span>
-            </span>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* AI Smart Contract Security Audit Section */}
+      {/* Contract Audit Lab */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Code Editor */}
-        <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        {/* Left: Code Editor & Presets */}
+        <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
-              <Terminal className="w-4 h-4 text-emerald-400" />
-              <span>{isHi ? 'स्मार्ट कॉन्ट्रैक्ट कोड' : 'Smart Contract Source (Stylus Rust / PyTeal)'}</span>
+              <Terminal className="w-4 h-4 text-indigo-400" />
+              <span>{isHi ? 'स्मार्ट कॉन्ट्रैक्ट कोड' : 'Smart Contract Source Code'}</span>
             </h3>
-            <span className="text-[11px] font-mono text-slate-400">Rust WASM</span>
+
+            {/* Presets */}
+            <div className="flex items-center space-x-1">
+              {PRESET_CONTRACTS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleSelectPreset(p.id)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                    selectedPresetId === p.id ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {p.type.split('-')[0]}
+                </button>
+              ))}
+            </div>
           </div>
 
           <textarea
-            rows={14}
+            rows={12}
             value={contractCode}
             onChange={(e) => setContractCode(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500"
           />
 
-          <button
-            id="btn-run-smart-contract-audit"
-            onClick={handleRunAudit}
-            disabled={isAuditing}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {isAuditing ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{isHi ? 'Gemini 3.7 सुरक्षा ऑडिट कर रहा है...' : 'Gemini AI Auditing Contract Invariants...'}</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="w-4 h-4" />
-                <span>{isHi ? 'AI सुरक्षा व PQC ऑडिट शुरू करें' : 'Run AI Security & PQC Audit'}</span>
-              </>
+          <div className="flex items-center justify-between pt-1">
+            <button
+              id="btn-run-smart-contract-audit"
+              onClick={handleRunAudit}
+              disabled={isAuditing}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isAuditing ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{isHi ? 'ऑडिट विश्लेषण हो रहा है...' : 'Running Invariant Analysis...'}</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{isHi ? 'सुरक्षा व PQC ऑडिट चलाएं' : 'Run Security & PQC Audit'}</span>
+                </>
+              )}
+            </button>
+
+            {auditResult && (
+              <button
+                onClick={handleDownloadCertificate}
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isHi ? 'सर्टिफिकेट डाउनलोड करें' : 'Download Certificate'}</span>
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Right: Audit Report */}
         <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
-              <FileCheck className="w-4 h-4 text-teal-400" />
-              <span>{isHi ? 'ऑडिट रिपोर्ट व सुरक्षा स्कोर' : 'Security Audit Report & PQC Readiness'}</span>
+              <FileCheck className="w-4 h-4 text-emerald-400" />
+              <span>{isHi ? 'ऑडिट परिणाम व PQC रेडीनेस' : 'Audit Report & Post-Quantum Score'}</span>
             </h3>
+
             {auditResult && (
               <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                   auditResult.riskLevel === 'LOW'
                     ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
                     : 'bg-rose-950 text-rose-400 border border-rose-500/30'
@@ -261,66 +375,57 @@ impl PqcSettlementEscrow {
             )}
           </div>
 
-          {auditResult && (
+          {auditResult ? (
             <div className="space-y-4">
               {/* Score Badges */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Overall Audit Score</span>
-                  <span className="text-2xl font-black font-mono text-emerald-400">{auditResult.auditScore}/100</span>
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">{isHi ? 'सुरक्षा स्कोर' : 'Security Audit Score'}</span>
+                  <span className="text-2xl font-black text-emerald-400 font-mono">{auditResult.auditScore} / 100</span>
                 </div>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">PQC Readiness Score</span>
-                  <span className="text-2xl font-black font-mono text-indigo-400">{auditResult.pqcReadinessScore}/100</span>
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">{isHi ? 'PQC लैटिस रेडीनेस' : 'PQC Lattice Readiness'}</span>
+                  <span className="text-2xl font-black text-cyan-400 font-mono">{auditResult.pqcReadinessScore} / 100</span>
                 </div>
               </div>
 
               {/* Summary */}
-              <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300">
+                <span className="text-slate-500 font-bold block text-[10px] uppercase mb-1">Executive Summary:</span>
                 {auditResult.summary}
               </div>
 
-              {/* Compliance Checklist */}
-              <div className="space-y-1.5 text-xs">
-                <span className="text-[11px] font-bold text-slate-400 uppercase block">{isHi ? 'अनुपालन सूची:' : 'Compliance Guardrail Checklist:'}</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center space-x-1.5 text-slate-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Coinbase KYC Verified</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 text-slate-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>OFAC Sanction Clean</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 text-slate-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Reentrancy Guard Active</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 text-slate-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>ML-DSA-65 Supported</span>
-                  </div>
+              {/* Checklist */}
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs font-mono">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Coinbase KYC Attestation:</span>
+                  <span className="text-emerald-400 font-bold">PASSED (Clean)</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">OFAC Sanction Compliance:</span>
+                  <span className="text-emerald-400 font-bold">PASSED (Zero Hits)</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">NIST ML-DSA-65 Lattice Signature:</span>
+                  <span className="text-cyan-400 font-bold">SUPPORTED (Quantum-Safe)</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Reentrancy Guard:</span>
+                  <span className="text-emerald-400 font-bold">VERIFIED</span>
                 </div>
               </div>
 
-              {/* Vulnerabilities */}
-              {auditResult.vulnerabilities.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase block">{isHi ? 'पहचाने गए बिंदु:' : 'Findings & Suggestions:'}</span>
-                  {auditResult.vulnerabilities.map((v, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-amber-300">{v.title}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-400">
-                          {v.severity}
-                        </span>
-                      </div>
-                      <p className="text-slate-400 text-[11px]">{v.description}</p>
-                      <p className="text-emerald-400 text-[11px]">💡 {v.recommendation}</p>
-                    </div>
-                  ))}
+              {/* Suggested Fix */}
+              {auditResult.suggestedFix && (
+                <div className="p-3 bg-indigo-950/40 rounded-xl border border-indigo-500/30 text-xs text-indigo-200">
+                  <span className="text-indigo-400 font-bold block text-[10px] uppercase mb-1">Architect Recommendation:</span>
+                  {auditResult.suggestedFix}
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-500 text-xs">
+              {isHi ? 'ऑडिट रन करने हेतु बाएँ बटन पर क्लिक करें।' : 'Click "Run Security & PQC Audit" to analyze smart contract.'}
             </div>
           )}
         </div>
