@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Zap, Shield, Cpu, Play, CheckCircle2, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Zap, Shield, Cpu, Play, CheckCircle2, ArrowRight, RefreshCw, AlertCircle, Globe, Check, X, Lock } from 'lucide-react';
 import { AgentInfo, ChatMessage, SupportedLanguage, RevenueCatTier } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -23,10 +23,10 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
     {
       id: 'msg-1',
       sender: 'orchestrator',
-      agentName: 'ALCAT Orchestrator-Prime',
+      agentName: 'ALCAT Orchestrator-Prime (Gemini Full Strength)',
       text: isHi
-        ? 'नमस्ते! मैं ALCAT (Autonomous Lattice Cellular Automata & Transactions) मल्टी-एजेंट ऑर्केस्ट्रेटर हूँ। मैं Conway Automata, Algorand X402 माइक्रोपेमेंट्स और NIST Post-Quantum Cryptography (ML-KEM-768/ML-DSA-65) के ज़रिए पूरी तरह स्वायत्त कार्य निष्पादित करता हूँ।'
-        : 'Welcome to ALCAT (Autonomous Lattice Cellular Automata & Transactions) - your Web 4.0 Autonomous Multi-Agent Orchestration Platform. I coordinate Conway Automata state machines, Algorand X402 M2M micropayments, and NIST Post-Quantum Cryptography (ML-KEM-768 & ML-DSA-65). What task would you like the swarm to execute today?',
+        ? 'नमस्ते! मैं ALCAT (Autonomous Lattice Cellular Automata & Transactions) मल्टी-एजेंट ऑर्केस्ट्रेटर हूँ। Google Gemini 2.5/3.7 AI और Conway Automata के साथ, मैं आपके कहे अनुसार वेब ब्राउज़िंग, रिसर्च, कोड राइटिंग, पोस्ट-क्वांटम सिग्नेचर और A to Z प्रोजेक्ट वर्क आपकी अनुमति से खुद ही पूरा कर सकता हूँ।'
+        : 'Welcome to ALCAT (Autonomous Lattice Cellular Automata & Transactions) - your Web 4.0 Autonomous Multi-Agent Swarm powered by Google Gemini AI & Conway Automata. Tell me any project or task: I will perform web browsing, research, smart contract generation, NIST PQC signing (ML-DSA-65), and Algorand X402 micropayments automatically upon your permission!',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       metadata: {
         pqcSignature: 'ML-DSA-65-ALCAT-VERIFIED',
@@ -40,6 +40,7 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
   const [loading, setLoading] = useState(false);
   const [executingTask, setExecutingTask] = useState(false);
   const [taskResult, setTaskResult] = useState<any>(null);
+  const [pendingPermissionTask, setPendingPermissionTask] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -48,28 +49,38 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, executingTask]);
+  }, [messages, executingTask, pendingPermissionTask]);
 
   const quickPrompts = isHi
     ? [
-        { label: '🚀 सबसे सस्ता सर्वर डेटा लाओ (X402 Pay)', prompt: 'मेरे लिए सबसे सस्ता सर्वर डेटा खोजो, SLA मोलभाव करो और Algorand X402 से पेमेंट सेटल करो।' },
-        { label: '🛡️ क्वांटम ML-DSA-65 की हस्ताक्षर जांच', prompt: 'ML-DSA-65 (Dilithium) पोस्ट-क्वांटम सिग्नेचर जनरेट करो और इसकी Shor एल्गोरिदम सुरक्षा सत्यापित करो।' },
-        { label: '🧬 कॉनवे स्टेट मशीन सिमुलेट करो', prompt: 'कॉनवे सेल्युलर ऑटोमेटा आधारित 4-एजेंट मेश का स्टेट ट्रांजिशन शुरू करो।' },
+        { label: '🌐 वेब रिसर्च व लेटेस्ट PQC स्टैंडर्ड्स खोजो', prompt: 'वेब ब्राउज़ करके NIST Post-Quantum Cryptography FIPS 203 व 204 की नवीनतम गाइडलाइंस खोजो और रिपोर्ट बनाओ।' },
+        { label: '🚀 A to Z नया Web4 प्रोजेक्ट शुरू करो', prompt: 'शुरू से अंत तक एक नया Web 4.0 ऑटोनोमस प्रोजेक्ट बनाओ, आर्किटेक्चर तय करो, Stylus Rust कोड लिखो और PQC साइन करो।' },
+        { label: '⚡ सबसे सस्ता GPU नोड खोजो (X402 Pay)', prompt: 'मेरे लिए सबसे सस्ता सर्वर डेटा खोजो, SLA मोलभाव करो और Algorand X402 से पेमेंट सेटल करो।' },
         { label: '⚖️ Coinbase KYC व स्मार्ट कॉन्ट्रैक्ट ऑडिट', prompt: 'Coinbase KYC अनुपालन और Arbitrum Stylus स्मार्ट कॉन्ट्रैक्ट का सुरक्षा ऑडिट करो।' },
       ]
     : [
-        { label: '🚀 Procure Compute Node via X402', prompt: 'Find the lowest latency decentralized compute node, negotiate dynamic SLA, and settle micro-payment via Algorand X402.' },
-        { label: '🛡️ Generate ML-DSA-65 PQC Signature', prompt: 'Generate NIST ML-DSA-65 Post-Quantum signature and verify lattice security against Shor algorithm.' },
-        { label: '🧬 Evolve Conway Agent State Machine', prompt: 'Execute Conway cellular automaton state transitions for 4-agent autonomous negotiation swarm.' },
+        { label: '🌐 Autonomous Web Research & PQC Standards', prompt: 'Browse the web and research the latest NIST FIPS 203 & 204 Post-Quantum Cryptography standards and create a synthesis report.' },
+        { label: '🚀 Build Turnkey Web4 Project (A to Z)', prompt: 'Build a complete Web 4.0 autonomous project from A to Z with architecture, Arbitrum Stylus Rust smart contracts, and ML-DSA-65 signatures.' },
+        { label: '⚡ Procure Compute Node via X402', prompt: 'Find the lowest latency decentralized compute node, negotiate dynamic SLA, and settle micro-payment via Algorand X402.' },
         { label: '⚖️ Run Coinbase KYC & Smart Contract Audit', prompt: 'Audit Arbitrum Stylus Rust contract for reentrancy, quantum lattice resilience, and Coinbase KYC guardrails.' },
       ];
+
+  const handleRequestTaskWithPermission = (taskText: string) => {
+    setPendingPermissionTask(taskText);
+  };
+
+  const handleApprovePendingTask = async () => {
+    if (!pendingPermissionTask) return;
+    const task = pendingPermissionTask;
+    setPendingPermissionTask(null);
+    await handleExecuteApprovedTask(task);
+  };
 
   const handleSendMessage = async (textToSend?: string) => {
     const query = textToSend || input;
     if (!query.trim() || loading) return;
 
-    // Catvertising check for free tier: occasionally show an ad prompt or banner
-    if (tier === 'free_catvertising' && Math.random() > 0.65) {
+    if (tier === 'free_catvertising' && Math.random() > 0.7) {
       onTriggerAd();
     }
 
@@ -99,7 +110,7 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'orchestrator',
-        agentName: 'Orchestrator-Prime',
+        agentName: 'Orchestrator-Prime (Gemini AI Active)',
         text: data.reply || data.fallbackReply || 'Task received and routed to Conway swarm.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         metadata: {
@@ -131,12 +142,10 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
     }
   };
 
-  const handleRunFullAutonomousPipeline = async () => {
+  const handleExecuteApprovedTask = async (taskText: string) => {
     setExecutingTask(true);
     setTaskResult(null);
 
-    const taskText = input || (isHi ? 'सबसे सस्ता GPU सर्वर डेटा लाओ और X402 से सेटल करो' : 'Procure lowest-cost compute node and settle with Algorand X402');
-    
     try {
       const result = await onExecuteTask(taskText);
       setTaskResult(result);
@@ -149,7 +158,7 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
       const completionMsg: ChatMessage = {
         id: `complete-${Date.now()}`,
         sender: 'agent',
-        agentName: 'Agent Paymaster & QuantumShield',
+        agentName: 'Agent Swarm (Autonomous Execution Complete)',
         text: isHi
           ? `✅ स्वायत्त टास्क सफलतापूर्वक पूरा हुआ! ${result?.taskSummary || 'ऑपरेशन संपन्न'}. Algorand X402 M2M सेटलमेंट और ML-DSA-65 लैटिस सिग्नेचर सत्यापित।`
           : `✅ Autonomous multi-agent pipeline succeeded! ${result?.taskSummary || 'Operation executed'}. Algorand X402 atomic settlement and ML-DSA-65 lattice signature verified.`,
@@ -204,16 +213,21 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
             <span className="font-semibold text-sm text-slate-200">
-              {isHi ? 'ALCAT मल्टी-एजेंट कमांड सेंटर' : 'ALCAT Multi-Agent Command Center'}
+              {isHi ? 'ALCAT मल्टी-एजेंट स्वायत्त कमांड सेंटर' : 'ALCAT Multi-Agent Command Center'}
             </span>
-            <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-500/30">
-              Gemini 3.7 Flash + PQC Engine
+            <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-500/30 flex items-center space-x-1">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Gemini AI (Full Strength) + PQC Engine</span>
             </span>
           </div>
 
           <button
             id="btn-run-autonomous-pipeline"
-            onClick={handleRunFullAutonomousPipeline}
+            onClick={() =>
+              handleRequestTaskWithPermission(
+                input || (isHi ? 'वेब रिसर्च करें, आर्किटेक्चर बनाएं और Stylus Rust कोड PQC के साथ डिप्लॉय करें' : 'Perform web research, build architecture, and deploy Stylus Rust code with PQC signatures')
+              )
+            }
             disabled={executingTask}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50"
           >
@@ -225,7 +239,7 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
             ) : (
               <>
                 <Play className="w-3.5 h-3.5 fill-white" />
-                <span>{isHi ? 'पूर्ण ऑटोनोमस पाइपलाइन चलाएं' : 'Run Full Autonomous Swarm'}</span>
+                <span>{isHi ? 'A to Z ऑटोनोमस टास्क चलाएं' : 'Run A-to-Z Autonomous Swarm'}</span>
               </>
             )}
           </button>
@@ -258,44 +272,34 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
                   className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-sm leading-relaxed ${
                     isUser
                       ? 'bg-cyan-600/90 text-white rounded-tr-none'
-                      : 'bg-slate-800/90 border border-slate-700/80 text-slate-100 rounded-tl-none'
+                      : 'bg-slate-800/90 text-slate-200 border border-slate-700/80 rounded-tl-none'
                   }`}
                 >
-                  {!isUser && msg.agentName && (
-                    <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-700/50">
-                      <span className="font-bold text-xs text-cyan-300">{msg.agentName}</span>
-                      <span className="text-[10px] text-slate-400">{msg.timestamp}</span>
+                  {!isUser && (
+                    <div className="text-[11px] font-bold text-cyan-400 mb-1 flex items-center space-x-1.5">
+                      <span>{msg.agentName || 'Orchestrator'}</span>
                     </div>
                   )}
 
                   <div className="whitespace-pre-wrap">{msg.text}</div>
 
-                  {/* Metadata Tags */}
+                  {/* Metadata Chips */}
                   {msg.metadata && (
-                    <div className="mt-3 pt-2 border-t border-slate-700/60 grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono text-slate-300">
+                    <div className="mt-3 pt-2.5 border-t border-slate-700/60 flex flex-wrap gap-2 text-[10px] font-mono">
                       {msg.metadata.pqcSignature && (
-                        <div className="flex items-center space-x-1 text-emerald-400">
-                          <Shield className="w-3 h-3" />
-                          <span className="truncate">PQC: {msg.metadata.pqcSignature}</span>
-                        </div>
-                      )}
-                      {msg.metadata.m2mFee && (
-                        <div className="flex items-center space-x-1 text-amber-400">
-                          <Zap className="w-3 h-3" />
-                          <span>Fee: {msg.metadata.m2mFee}</span>
-                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-950/80 text-emerald-400 border border-emerald-500/30">
+                          🛡️ {msg.metadata.pqcSignature}
+                        </span>
                       )}
                       {msg.metadata.conwayState && (
-                        <div className="flex items-center space-x-1 text-indigo-400">
-                          <Cpu className="w-3 h-3" />
-                          <span>FSM State: {msg.metadata.conwayState}</span>
-                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-950/80 text-cyan-400 border border-cyan-500/30">
+                          🧬 {msg.metadata.conwayState}
+                        </span>
                       )}
-                      {msg.metadata.txHash && (
-                        <div className="flex items-center space-x-1 text-cyan-400">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span className="truncate">Tx: {msg.metadata.txHash}</span>
-                        </div>
+                      {msg.metadata.m2mFee && (
+                        <span className="px-2 py-0.5 rounded bg-slate-950/80 text-amber-400 border border-amber-500/30">
+                          ⚡ {msg.metadata.m2mFee}
+                        </span>
                       )}
                     </div>
                   )}
@@ -304,59 +308,81 @@ export const AgentChatbot: React.FC<AgentChatbotProps> = ({
             );
           })}
 
+          {/* Pending Permission Request Modal Card */}
+          {pendingPermissionTask && (
+            <div className="p-4 bg-amber-950/60 border border-amber-500/50 rounded-2xl space-y-3 animate-pulse">
+              <div className="flex items-center space-x-2 text-amber-300 font-bold text-xs">
+                <Lock className="w-4 h-4" />
+                <span>{isHi ? 'मानव अनुमति आवश्यक (Human Permission Required)' : 'Swarm Permission Approval Required'}</span>
+              </div>
+              <p className="text-xs text-slate-200">
+                {isHi
+                  ? `एजेंट स्वार्म इस टास्क को निष्पादित करने के लिए आपकी अनुमति मांग रहा है: "${pendingPermissionTask}". क्या आप स्वायत्त वेब रिसर्च, PQC साइनिंग और X402 सेटलमेंट की अनुमति देते हैं?`
+                  : `Agent swarm requests your permission to execute: "${pendingPermissionTask}". Allow autonomous web research, NIST PQC signing, and Algorand X402 micro-settlement?`}
+              </p>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleApprovePendingTask}
+                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer shadow"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{isHi ? 'स्वीकार करें व शुरू करें' : 'Approve & Execute'}</span>
+                </button>
+                <button
+                  onClick={() => setPendingPermissionTask(null)}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>{isHi ? 'रद्द करें' : 'Cancel'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading Indicator */}
           {loading && (
-            <div className="flex items-center space-x-3 text-slate-400 text-xs">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
-                <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
-              </div>
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
-                {isHi ? 'Gemini और Conway एजेंट्स विचार-विमर्श कर रहे हैं...' : 'Gemini & Conway Agents reasoning and synthesizing state transitions...'}
-              </div>
+            <div className="flex items-center space-x-2 text-xs text-slate-400 p-2">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+              <span>{isHi ? 'Gemini AI और Conway लैटिस विचार कर रहे हैं...' : 'Gemini AI & Conway lattice reasoning in progress...'}</span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Prompts Bar */}
-        <div className="px-4 py-2 bg-slate-950/60 border-t border-slate-800/80 flex items-center space-x-2 overflow-x-auto scrollbar-none">
-          <span className="text-[11px] text-slate-400 uppercase font-semibold tracking-wider shrink-0">
-            {isHi ? 'सुझाव:' : 'Quick:'}
-          </span>
-          {quickPrompts.map((qp, idx) => (
+        {/* Quick Action Prompts */}
+        <div className="p-3 bg-slate-950/70 border-t border-slate-800/80 flex items-center space-x-2 overflow-x-auto scrollbar-none">
+          {quickPrompts.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => handleSendMessage(qp.prompt)}
-              className="px-2.5 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 hover:text-white whitespace-nowrap transition-all"
+              onClick={() => handleSendMessage(item.prompt)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs whitespace-nowrap transition-all cursor-pointer shadow-sm hover:text-white hover:border-cyan-500/40"
             >
-              {qp.label}
+              {item.label}
             </button>
           ))}
         </div>
 
-        {/* Input Bar */}
-        <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center space-x-2">
+        {/* Chat Input Bar */}
+        <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center space-x-3">
           <input
-            id="input-chat-query"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder={
               isHi
-                ? 'एजेंट्स को निर्देश दें (उदा: "सबसे सस्ता सर्वर डेटा लाओ", "ML-DSA हस्ताक्षर सत्यापित करो")...'
-                : 'Instruct autonomous agents (e.g. "Find cheapest compute node", "Sign with ML-DSA-65")...'
+                ? 'एजेंट्स को कोई भी प्रोजेक्ट, वेब रिसर्च या कार्य बताएं...'
+                : 'Instruct the swarm: web browsing, project building, PQC signing...'
             }
-            className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+            className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
           />
-
           <button
-            id="btn-submit-chat"
+            id="btn-send-chat-message"
             onClick={() => handleSendMessage()}
             disabled={!input.trim() || loading}
-            className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium text-sm flex items-center space-x-1.5 transition-all shadow-md cursor-pointer"
+            className="p-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 cursor-pointer shadow-md transition-all"
           >
-            <span>{isHi ? 'भेजें' : 'Send'}</span>
             <Send className="w-4 h-4" />
           </button>
         </div>
