@@ -100,11 +100,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🌐 Deployment Guide
 
-### Option A: Deploy to Netlify (Recommended)
+### Option A: Deploy to Netlify (1-Click Instant Deploy)
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/elon00/alcat-mesh)
 
-1. Connect your GitHub repository to [Netlify](https://app.netlify.com).
+1. Click the **Deploy to Netlify** button above or open [Netlify Import](https://app.netlify.com/start/deploy?repository=https://github.com/elon00/alcat-mesh).
 2. Netlify will automatically detect [`netlify.toml`](netlify.toml):
    - **Build Command**: `npm run build:client`
    - **Publish Directory**: `dist`
