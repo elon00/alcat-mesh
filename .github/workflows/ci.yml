@@ -34,9 +34,13 @@ jobs:
 
       - name: 🧪 Execute ALCAT Verification Suite
         run: npm test
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: 🏗️ Build Production Bundle (Vite Client + Node Server)
         run: npm run build
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: ⚡ Verify Netlify Serverless Artifacts
         run: |
