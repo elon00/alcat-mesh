@@ -11,7 +11,7 @@
 [![RevenueCat](https://img.shields.io/badge/Monetization-RevenueCat%20%2B%20Ads-amber.svg)](https://www.revenuecat.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-[**Live Demo**](https://alcat-quantum-mesh.netlify.app) • [**GitHub Repository**](https://github.com/elon00/alcat-mesh) • [**API Documentation**](#-api-endpoints--microservices) • [**Product Tiers**](#-commercial-product-tiers--monetization)
+[**Live Demo (Netlify)**](https://alcat-mesh-2187.netlify.app) • [**GitHub Repository**](https://github.com/elon00/alcat-mesh) • [**API Documentation**](#-api-endpoints--microservices) • [**Product Tiers**](#-commercial-product-tiers--monetization)
 
 </div>
 
