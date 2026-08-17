@@ -3,7 +3,7 @@
 # 🌌 ALCAT: Autonomous Lattice Cellular Automata & Transactions
 ### *Web 4.0 Autonomous Multi-Agent Swarm, Post-Quantum Cryptography & M2M Micropayments*
 
-[![CI Build & Verification](https://github.com/marti/q-symbiotic-ai-economy/actions/workflows/ci.yml/badge.svg)](https://github.com/marti/q-symbiotic-ai-economy/actions)
+[![CI Build & Verification](https://github.com/elon00/alcat-mesh/actions/workflows/ci.yml/badge.svg)](https://github.com/elon00/alcat-mesh/actions)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-netlify-badge/deploy-status)](https://app.netlify.com)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.8.2-blue.svg?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![NIST PQC](https://img.shields.io/badge/NIST%20PQC-FIPS%20203%20%7C%20204-indigo.svg)](https://csrc.nist.gov/projects/post-quantum-cryptography)
@@ -11,7 +11,7 @@
 [![RevenueCat](https://img.shields.io/badge/Monetization-RevenueCat%20%2B%20Ads-amber.svg)](https://www.revenuecat.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-[**Live Demo**](https://alcat-quantum-mesh.netlify.app) • [**API Documentation**](#-api-endpoints--microservices) • [**Product Tiers**](#-commercial-product-tiers--monetization) • [**Deploy Guide**](#-deployment-guide)
+[**Live Demo**](https://alcat-quantum-mesh.netlify.app) • [**GitHub Repository**](https://github.com/elon00/alcat-mesh) • [**API Documentation**](#-api-endpoints--microservices) • [**Product Tiers**](#-commercial-product-tiers--monetization)
 
 </div>
 
@@ -71,8 +71,8 @@ ALCAT is designed for immediate enterprise monetization through fiat subscriptio
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/marti/q-symbiotic-ai-economy.git
-cd q-symbiotic-ai-economy
+git clone https://github.com/elon00/alcat-mesh.git
+cd alcat-mesh
 npm install
 ```
 
