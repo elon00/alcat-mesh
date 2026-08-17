@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { AgentChatbot } from './components/AgentChatbot';
 import { ConwayAutomatonVisualizer } from './components/ConwayAutomatonVisualizer';
@@ -14,7 +14,9 @@ import { ComplianceAuditInspector } from './components/ComplianceAuditInspector'
 import { CodeBlueprintStudio } from './components/CodeBlueprintStudio';
 import { AgentInfo, NetworkType, RevenueCatTier, SupportedLanguage } from './types';
 import { INITIAL_AGENTS } from './utils/conwayEngine';
-import { Activity, ShieldCheck, Zap, X, Server, Cpu, CheckCircle2 } from 'lucide-react';
+import { walletShield, EIP6963ProviderDetail } from './utils/walletProviderShield';
+import { rpcEngine, RpcEndpoint } from './utils/rpcFailoverEngine';
+import { Activity, ShieldCheck, Zap, X, Server, Cpu, CheckCircle2, Wallet, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function App() {
@@ -29,6 +31,19 @@ export default function App() {
   const [faucetNotification, setFaucetNotification] = useState<string | null>(null);
 
   const [agents, setAgents] = useState<AgentInfo[]>(INITIAL_AGENTS);
+  const [detectedWallets, setDetectedWallets] = useState<EIP6963ProviderDetail[]>([]);
+  const [activeRpc, setActiveRpc] = useState<RpcEndpoint>(rpcEngine.getActiveEndpoint(network));
+
+  useEffect(() => {
+    const unsub = walletShield.subscribe((wallets) => {
+      setDetectedWallets(wallets);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    setActiveRpc(rpcEngine.getActiveEndpoint(network));
+  }, [network]);
 
   const handleDeductBalance = (amount: number, currency: 'ALGO' | 'ETH') => {
     setWalletBalance((prev) => ({
@@ -157,12 +172,12 @@ export default function App() {
       {/* System Diagnostics Modal */}
       {diagnosticsOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-slate-100">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Activity className="w-5 h-5 text-cyan-400" />
                 <h3 className="font-bold text-base">
-                  {isHi ? 'ALCAT लाइव मेश डायग्नोस्टिक्स' : 'ALCAT Mesh Live Diagnostics'}
+                  {isHi ? 'ALCAT लाइव मेश व RPC डायग्नोस्टिक्स' : 'ALCAT Mesh & RPC Live Diagnostics'}
                 </h3>
               </div>
               <button
@@ -173,26 +188,49 @@ export default function App() {
               </button>
             </div>
 
-            <div className="space-y-2 text-xs font-mono">
-              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-slate-400">Mesh Latency / Ping:</span>
-                <span className="text-emerald-400 font-bold">24 ms (Sub-second)</span>
+            <div className="space-y-3 text-xs">
+              {/* Primary Metrics */}
+              <div className="space-y-1.5 font-mono">
+                <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+                  <span className="text-slate-400">Mesh Ping Latency:</span>
+                  <span className="text-emerald-400 font-bold">{activeRpc.latencyMs} ms (Healthy)</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+                  <span className="text-slate-400">Post-Quantum Security:</span>
+                  <span className="text-indigo-400 font-bold">NIST FIPS 203 & 204 Active</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+                  <span className="text-slate-400">Active RPC Failover Pool:</span>
+                  <span className="text-cyan-400 font-bold truncate max-w-[200px]" title={activeRpc.url}>
+                    {activeRpc.url.replace('https://', '')}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-slate-400">Post-Quantum Security:</span>
-                <span className="text-indigo-400 font-bold">NIST FIPS 203 & 204 Active</span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-slate-400">Algorand X402 Relays:</span>
-                <span className="text-cyan-400 font-bold">4 Active Gas Nodes</span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-slate-400">Conway Swarm Equilibrium:</span>
-                <span className="text-amber-400 font-bold">Stable (Entropy 0.842)</span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-slate-400">Coinbase KYC Attestation:</span>
-                <span className="text-emerald-400 font-bold">Zero-Knowledge Clean</span>
+
+              {/* Multi-Wallet Shield Status */}
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-bold flex items-center space-x-1.5">
+                    <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                    <span>EIP-6963 Wallet Shield:</span>
+                  </span>
+                  <span className="text-emerald-400 font-mono text-[10px] font-bold">
+                    {detectedWallets.length > 0 ? `${detectedWallets.length} Wallet(s) Isolated` : 'Shield Active (Zero Collisions)'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {detectedWallets.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {detectedWallets.map((w, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200">
+                          {w.info.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span>Multi-provider collision guard prevents window.ethereum redefine errors.</span>
+                  )}
+                </div>
               </div>
             </div>
 
