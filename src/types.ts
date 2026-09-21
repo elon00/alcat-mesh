@@ -81,14 +81,21 @@ export interface X402PaymentRequest {
 }
 
 export interface PqcKeyPair {
-  algorithm: 'ML-KEM-768' | 'ML-DSA-65' | 'Kyber-768' | 'Dilithium-3';
+  algorithm: 'ML-KEM-768' | 'ML-DSA-65' | 'Hybrid-Ed25519-Dilithium' | 'Kyber-768' | 'Dilithium-3';
   publicKey: string;
-  privateKeyMasked: string;
-  securityLevelBits: number;
-  nistCategory: 'NIST Level 3 (AES-192 equivalent)' | 'NIST Level 5 (AES-256 equivalent)';
-  latticeDimensions: string;
-  shorQuantumResistance: 'IMMUNE' | 'CRACKABLE_IN_MINUTES';
-  createdIso: string;
+  keyId?: string;
+  publicKeyFingerprint?: string;
+  privateKeyPreview?: string;
+  privateKeyMasked?: string;
+  keySizeBits?: number;
+  nistSecurityLevel?: number;
+  securityLevelBits?: number;
+  nistCategory?: 'NIST Level 3 (AES-192 equivalent)' | 'NIST Level 5 (AES-256 equivalent)';
+  latticeDimensions?: string;
+  shorQuantumResistance?: 'IMMUNE' | 'CRACKABLE_IN_MINUTES';
+  createdAt?: string;
+  createdIso?: string;
+  authorizedForAgent?: boolean;
 }
 
 export interface SmartContractAuditResult {
