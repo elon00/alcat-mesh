@@ -22,7 +22,9 @@ import {
   verifyPqcSignature,
   encapsulateKEM,
   decapsulateKEM,
-  hexToBytes
+  hexToBytes,
+  verifyPqcMessage,
+  signPqcMessage
 } from '../src/utils/pqcCrypto.js';
 
 test('NIST TIER 1: RFC 5869 HKDF-SHA256 Known Answer Verification', () => {
@@ -116,4 +118,15 @@ test('seed normalization and strict hexadecimal parsing fail closed', () => {
   assert.equal(kem.publicKey.length / 2, 1184);
   assert.throws(() => hexToBytes('not-hex'));
   assert.throws(() => hexToBytes('0'));
+});
+
+test('Custom verification rejects marker-only input and modified messages', () => {
+  const key = generateUiKey('ML-DSA-65');
+  const signed = signWithMlDsa65('original', key);
+  assert.equal(verifyPqcMessage(signed.signature, 'original', key.publicKey), true);
+  assert.equal(verifyPqcMessage(signed.signature, 'modified', key.publicKey), false);
+  assert.equal(verifyPqcMessage('MLDSA65', 'original', key.publicKey), false);
+  assert.throws(() => signPqcMessage('missing-key', 'original'));
+  const kem = generatePqcKeyPair('ML-KEM-768');
+  assert.throws(() => signPqcMessage(kem.keyId, 'original'));
 });

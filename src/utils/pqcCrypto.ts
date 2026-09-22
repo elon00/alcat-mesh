@@ -227,12 +227,10 @@ export function signPqcMessage(keyId: string, message: string): { signature: str
   const encoder = new TextEncoder();
   const messageBytes = encoder.encode(message);
   let sigBytes: Uint8Array;
-  if (stored) {
+  if (stored && stored.secretKey.length === 4032) {
     sigBytes = ml_dsa65.sign(messageBytes, stored.secretKey);
   } else {
-    const seed = sha256(encoder.encode(keyId));
-    const pair = ml_dsa65.keygen(seed);
-    sigBytes = ml_dsa65.sign(messageBytes, pair.secretKey);
+    throw new Error('An active ML-DSA signing key is required');
   }
   return {
     signature: '0xpqc_mldsa65_' + bytesToHex(sigBytes),
