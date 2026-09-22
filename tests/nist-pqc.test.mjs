@@ -1,4 +1,16 @@
 import test from 'node:test';
+import { generatePqcKeyPair as generateUiKey, signWithMlDsa65 } from '../src/utils/cryptoPqc.ts';
+
+test('UI signing verifies the selected key and rejects missing or KEM keys', () => {
+  const key = generateUiKey('ML-DSA-65');
+  const result = signWithMlDsa65('hello', key);
+  assert.equal(result.verified, true);
+  assert.equal(result.signature.length, 6618);
+  assert.equal(ml_dsa65.verify(Buffer.from(result.signature, 'hex'), new TextEncoder().encode('hello'), Buffer.from(key.publicKey, 'hex')), true);
+  assert.throws(() => signWithMlDsa65('hello', { ...key, publicKey: '00' }));
+  assert.throws(() => signWithMlDsa65('hello', generateUiKey('ML-KEM-768')));
+  assert.ok(key.privateKeyMasked.endsWith('[REDACTED]'));
+});
 import assert from 'node:assert/strict';
 import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha256.js';
@@ -9,7 +21,8 @@ import {
   createPqcHybridSignature,
   verifyPqcSignature,
   encapsulateKEM,
-  decapsulateKEM
+  decapsulateKEM,
+  hexToBytes
 } from '../src/utils/pqcCrypto.js';
 
 test('NIST TIER 1: RFC 5869 HKDF-SHA256 Known Answer Verification', () => {
@@ -62,11 +75,13 @@ test('NIST TIER 5: NIST FIPS 204 ML-DSA-65 Wire Invariants', () => {
 test('NIST TIER 6: NIST FIPS 204 ML-DSA-65 Signing & Verification', () => {
   const keyPair = generatePqcKeyPair('ML-DSA-65');
   const sig = createPqcHybridSignature('TX_ALGORAND_TEST_001', keyPair, 0.005, 'srv-quantum-ai');
-  assert.ok(sig.hybridSignature.startsWith('PQC-HYBRID-x402.'));
+  assert.ok(sig.hybridSignature.startsWith('ML-DSA-65.'));
   assert.equal(sig.mlDsaComponent.length / 2, 3309, 'ML-DSA-65 signature must be 3,309 bytes');
 
   const ver = verifyPqcSignature(sig.hybridSignature, 'TX_ALGORAND_TEST_001', keyPair.publicKey, 0.005, 'srv-quantum-ai');
   assert.equal(ver.valid, true);
+  assert.equal(sig.ed25519Component, 'NOT_IMPLEMENTED');
+  assert.equal(sig.quantumResistanceScore, 0);
 });
 
 test('NIST TIER 7: Wycheproof Negative & Adversarial Tests', () => {
@@ -74,14 +89,31 @@ test('NIST TIER 7: Wycheproof Negative & Adversarial Tests', () => {
   const sig = createPqcHybridSignature('TX_ALGORAND_TEST_002', keyPair, 0.005, 'srv-quantum-ai');
 
   // Corrupt signature
-  const badSig = sig.hybridSignature.replace('PQC-HYBRID-x402.', 'CORRUPTED.');
+  const badSig = sig.hybridSignature.replace('ML-DSA-65.', 'CORRUPTED.');
   const verBad = verifyPqcSignature(badSig, 'TX_ALGORAND_TEST_002', keyPair.publicKey);
   assert.equal(verBad.valid, false);
+
+  const digestOnly = sig.hybridSignature.split('.').slice(0, 2).join('.') + '.00';
+  assert.equal(verifyPqcSignature(digestOnly, 'TX_ALGORAND_TEST_002', keyPair.publicKey).valid, false);
+
+  const finalByte = parseInt(sig.hybridSignature.slice(-2), 16) ^ 1;
+  const altered = sig.hybridSignature.slice(0, -2) + finalByte.toString(16).padStart(2, '0');
+  assert.equal(verifyPqcSignature(altered, 'TX_ALGORAND_TEST_002', keyPair.publicKey, 0.005, 'srv-quantum-ai').valid, false);
 });
 
-test('NIST TIER 8: x402 Dual Hybrid Payment Conjunction', () => {
+test('Unavailable hybrid payment capability is not claimed', () => {
   const keyPair = generatePqcKeyPair('ML-DSA-65');
   const sig = createPqcHybridSignature('RQSQ6LBTNQEGROLRSKRCJPLVLUD6JOGAVY3QUTDDYGYBBHGAKDSA', keyPair, 0.005, 'srv-shor-orchestrator');
-  assert.equal(sig.quantumResistanceScore, 1.0);
-  assert.ok(sig.verificationProof.includes('NIST_FIPS_204_ML_DSA_65_AUTHENTICATED'));
+  assert.equal(sig.quantumResistanceScore, 0);
+  assert.ok(sig.verificationProof.includes('ML_DSA_65_SIGNATURE'));
+  assert.throws(() => createPqcHybridSignature('TX', generatePqcKeyPair('ML-KEM-768'), 1, 'service'));
+});
+
+test('seed normalization and strict hexadecimal parsing fail closed', () => {
+  const dsa = generatePqcKeyPair('ML-DSA-65', new Uint8Array([1]));
+  const kem = generatePqcKeyPair('ML-KEM-768', new Uint8Array([2]));
+  assert.equal(dsa.publicKey.length / 2, 1952);
+  assert.equal(kem.publicKey.length / 2, 1184);
+  assert.throws(() => hexToBytes('not-hex'));
+  assert.throws(() => hexToBytes('0'));
 });

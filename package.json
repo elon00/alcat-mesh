@@ -12,11 +12,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node test/suite.cjs",
-    "test:nist": "node C:/Users/marti/quantumshield/node_modules/tsx/dist/cli.mjs tests/nist-pqc.test.mjs",
+    "test": "node test/suite.cjs && npm run test:nist",
+    "test:nist": "node --import tsx tests/nist-pqc.test.mjs",
     "audit:crypto": "node scripts/audit-crypto.mjs",
-    "reality:universal": "node C:/Users/marti/quantumshield/node_modules/tsx/dist/cli.mjs scripts/reality-universal.ts",
-    "reality:certify": "node C:/Users/marti/quantumshield/node_modules/tsx/dist/cli.mjs scripts/generate-urs-certificate.ts"
+    "reality:universal": "node --import tsx scripts/reality-universal.ts",
+    "reality:certify": "node --import tsx scripts/generate-urs-certificate.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -40,6 +40,8 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
-    "@types/express": "^4.17.21"
+    "@types/express": "^4.17.21",
+    "@noble/hashes": "1.8.0",
+    "@noble/post-quantum": "0.7.1"
   }
 }

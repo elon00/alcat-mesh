@@ -17,6 +17,14 @@
 
 ---
 
+## Verification status
+
+This repository is a research prototype. The legacy `test/suite.cjs` suite uses a mock HTTP server and illustrative fixtures; passing it does not verify the application server, blockchain settlement, compliance, monetization, or production readiness. `npm test` also runs tests against the actual PQC utility.
+
+The signature helper verifies full ML-DSA-65 signatures. Its historical “hybrid” API name does not imply an implemented Ed25519 component or on-chain payment verification. These components remain unavailable. Deployment and commercial descriptions below are intended designs, not audited readiness claims.
+
+Reproduce local checks with `npm ci --ignore-scripts`, `npm test`, `npm run lint`, and `npm run build`. Do not use prototype keys or mock settlement outputs to authorize real funds.
+
 ## 🌟 Overview
 
 **ALCAT** is an enterprise-grade Web 4.0 autonomous multi-agent operating architecture. It unites **Discrete 2D Cellular Automata (Conway's Game of Life B3/S23)**, **NIST Post-Quantum Cryptography (ML-KEM-768 & ML-DSA-65)**, **Algorand HTTP 402 Machine-to-Machine (M2M) Micropayments**, and **RevenueCat Subscription Monetization** into a unified, commercial-ready product.

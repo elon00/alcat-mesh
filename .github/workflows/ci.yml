@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install Dependencies
-        run: npm ci || npm install
+        run: npm ci --ignore-scripts
 
       - name: 🔍 TypeScript Static Typecheck & Lint
         run: npm run lint
