@@ -1,0 +1,50 @@
+{
+  "x402Version": "1.0.0",
+  "version": "1.0.0",
+  "name": "ALCAT — Symbiotic Autonomous AI Agent Economy",
+  "type": "multi-agent-orchestrator",
+  "category": "ai-agent-commerce",
+  "tags": [
+    "algorand",
+    "multi-agent",
+    "conway-automaton",
+    "post-quantum",
+    "ml-kem-768",
+    "ml-dsa-65",
+    "x402",
+    "m2m"
+  ],
+  "provider": {
+    "name": "ALCAT Protocol / Martin",
+    "website": "https://github.com/elon00/alcat-mesh",
+    "payTo": "TPLMGGFNG64LKOCKVB7ZMQH5AMSNMV4GLI7GCH4FY2XQEKSIGB77O6LCFM",
+    "network": "algorand-mainnet",
+    "caip2": "algorand:wGHE2pwdvd7S12BL5Fa+PRx3TF3QXDYODnakNVUtvpU="
+  },
+  "endpoints": [
+    {
+      "path": "/api/v1/x402/alcat/orchestrate",
+      "method": "POST",
+      "description": "Trigger multi-agent autonomous swarm coordination and Conway state transition synthesis",
+      "pricing": {
+        "costUsdc": 0.005,
+        "amount": "0.005000",
+        "currency": "USDC",
+        "assetId": 31566704
+      },
+      "challengeHeader": "WWW-Authenticate: x402 realm=\"alcat\", payTo=\"TPLMGGFNG64LKOCKVB7ZMQH5AMSNMV4GLI7GCH4FY2XQEKSIGB77O6LCFM\", amount=\"0.005\", currency=\"USDC\", network=\"algorand:wGHE2pwdvd7S12BL5Fa+PRx3TF3QXDYODnakNVUtvpU=\""
+    },
+    {
+      "path": "/api/v1/x402/alcat/pqc-exchange",
+      "method": "POST",
+      "description": "NIST FIPS 203 ML-KEM-768 quantum-safe key exchange capsule for inter-agent communications",
+      "pricing": {
+        "costUsdc": 0.005,
+        "amount": "0.005000",
+        "currency": "USDC",
+        "assetId": 31566704
+      },
+      "challengeHeader": "WWW-Authenticate: x402 realm=\"alcat\", payTo=\"TPLMGGFNG64LKOCKVB7ZMQH5AMSNMV4GLI7GCH4FY2XQEKSIGB77O6LCFM\", amount=\"0.005\", currency=\"USDC\", network=\"algorand:wGHE2pwdvd7S12BL5Fa+PRx3TF3QXDYODnakNVUtvpU=\""
+    }
+  ]
+}
