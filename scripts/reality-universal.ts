@@ -160,13 +160,13 @@ try {
 try {
   const keyPair = generatePqcKeyPair('ML-DSA-65');
   const sigResult = createPqcHybridSignature('ALCAT_TX_001', keyPair, 0.05, 'alcat-mesh');
-  assert.ok(sigResult.hybridSignature.startsWith('PQC-HYBRID-x402.'));
+  assert.ok(sigResult.hybridSignature.startsWith('ML-DSA-65.'));
 
   const ver = verifyPqcSignature(sigResult.hybridSignature, 'ALCAT_TX_001', keyPair.publicKey, 0.05, 'alcat-mesh');
   assert.strictEqual(ver.valid, true, 'Genuine signature must verify');
 
   // Tamper rejection
-  const tamperedSig = sigResult.hybridSignature.replace('PQC-HYBRID-x402.', 'PQC-HYBRID-FORGED.');
+  const tamperedSig = sigResult.hybridSignature.replace('ML-DSA-65.', 'FORGED.');
   const verTampered = verifyPqcSignature(tamperedSig, 'ALCAT_TX_001', keyPair.publicKey, 0.05, 'alcat-mesh');
   assert.strictEqual(verTampered.valid, false, 'Tampered signature must be rejected');
 
@@ -190,6 +190,7 @@ try {
 try {
   const keyPair = generatePqcKeyPair('ML-DSA-65');
   const sigResult = createPqcHybridSignature('ALCAT_M2M_SETTLEMENT', keyPair, 0.001, 'alcat-m2m');
+  assert.notStrictEqual(sigResult.ed25519Component, 'NOT_IMPLEMENTED', 'Hybrid settlement is not implemented; this readiness gate must remain failed');
   assert.strictEqual(sigResult.quantumResistanceScore, 1.0);
   assert.ok(sigResult.verificationProof.includes('NIST_FIPS_204_ML_DSA_65_AUTHENTICATED'));
 

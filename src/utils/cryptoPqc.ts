@@ -10,7 +10,8 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 export function hexToBytes(hex: string): Uint8Array {
-  const cleanHex = hex.replace(/[^0-9a-fA-F]/g, '');
+  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (!/^(?:[0-9a-fA-F]{2})*$/.test(cleanHex)) throw new Error('Invalid hexadecimal input');
   const bytes = new Uint8Array(cleanHex.length / 2);
   for (let i = 0; i < cleanHex.length; i += 2) {
     bytes[i / 2] = parseInt(cleanHex.substring(i, i + 2), 16);
@@ -40,8 +41,8 @@ export function generatePqcKeyPair(algorithm: 'ML-KEM-768' | 'ML-DSA-65' = 'ML-D
   secretKeyStorage.set(pubHex, secBytes);
 
   const prefix = isKem ? 'kyber768' : 'dsa65';
-  const pubKeyFormatted = `pqc:${prefix}:0x${pubHex.substring(0, 32)}...${pubHex.substring(pubHex.length - 16)}`;
-  const privKeyMasked = `pqc:${prefix}:sec:********************************${bytesToHex(secBytes.slice(0, 4))}`;
+  const pubKeyFormatted = pubHex;
+  const privKeyMasked = `pqc:${prefix}:sec:[REDACTED]`;
 
   return {
     algorithm,
@@ -59,29 +60,14 @@ export function signWithMlDsa65(message: string, keyPair: PqcKeyPair): { signatu
   const start = performance.now();
   const messageBytes = new TextEncoder().encode(message);
 
-  // Retrieve stored secret key or generate deterministic fallback
-  let secKey: Uint8Array | undefined;
-  for (const [pubHex, sec] of secretKeyStorage.entries()) {
-    if (keyPair.publicKey.includes(pubHex.substring(0, 16))) {
-      secKey = sec;
-      break;
-    }
+  const secKey = secretKeyStorage.get(keyPair.publicKey);
+  if (keyPair.algorithm !== 'ML-DSA-65' || !secKey || secKey.length !== 4032) {
+    throw new Error('An active ML-DSA-65 signing key is required');
   }
-
-  let sigBytes: Uint8Array;
-  let verified = false;
-
-  if (secKey && secKey.length === 4032) {
-    sigBytes = ml_dsa65.sign(messageBytes, secKey);
-    verified = true;
-  } else {
-    const fallbackPair = ml_dsa65.keygen();
-    sigBytes = ml_dsa65.sign(messageBytes, fallbackPair.secretKey);
-    verified = ml_dsa65.verify(sigBytes, messageBytes, fallbackPair.publicKey);
-  }
-
-  const sigHex = `0xMLDSA65_${bytesToHex(sigBytes).substring(0, 32)}...[${sigBytes.length}_bytes]`;
-  const elapsed = Math.round((performance.now() - start + 0.8) * 100) / 100;
+  const sigBytes = ml_dsa65.sign(messageBytes, secKey);
+  const verified = ml_dsa65.verify(sigBytes, messageBytes, hexToBytes(keyPair.publicKey));
+  const sigHex = bytesToHex(sigBytes);
+  const elapsed = Math.round((performance.now() - start) * 100) / 100;
 
   return {
     signature: sigHex,

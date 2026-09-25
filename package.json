@@ -12,11 +12,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node test/suite.cjs",
-    "test:nist": "npx tsx tests/nist-pqc.test.mjs",
+    "test": "node test/suite.cjs && npm run test:nist",
+    "test:nist": "node --import tsx tests/nist-pqc.test.mjs",
     "audit:crypto": "node scripts/audit-crypto.mjs",
-    "reality:universal": "npx tsx scripts/reality-universal.ts",
-    "reality:certify": "npx tsx scripts/generate-urs-certificate.ts"
+    "reality:universal": "node --import tsx scripts/reality-universal.ts",
+    "reality:certify": "node --import tsx scripts/generate-urs-certificate.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -31,8 +31,8 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3",
-    "@noble/hashes": "^1.8.0",
-    "@noble/post-quantum": "^0.5.2"
+    "@noble/hashes": "1.8.0",
+    "@noble/post-quantum": "0.7.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

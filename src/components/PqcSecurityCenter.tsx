@@ -3,6 +3,7 @@ import { ShieldCheck, Key, Lock, Cpu, CheckCircle2, AlertTriangle, RefreshCw, Do
 import { PqcKeyPair, SupportedLanguage } from '../types';
 import { generatePqcKeyPair, signWithMlDsa65, QUANTUM_THREAT_BENCHMARKS } from '../utils/cryptoPqc';
 import confetti from 'canvas-confetti';
+import { verifyPqcMessage } from '../utils/pqcCrypto';
 
 interface PqcSecurityCenterProps {
   language: SupportedLanguage;
@@ -55,7 +56,7 @@ export const PqcSecurityCenter: React.FC<PqcSecurityCenterProps> = ({ language }
       setVerifyStatus('INVALID');
       return;
     }
-    const isValid = customSigToVerify.includes('MLDSA65');
+    const isValid = verifyPqcMessage(customSigToVerify.trim(), customMsgToVerify, dsaKeyPair.publicKey);
     setVerifyStatus(isValid ? 'VALID' : 'INVALID');
     if (isValid) {
       confetti({ particleCount: 30, spread: 40 });
