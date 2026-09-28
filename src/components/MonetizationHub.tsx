@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, Sparkles, CheckCircle2, Shield, Zap, X, Play, RefreshCw, Download, Gift, Tag, Check, ShieldCheck, ArrowRight } from 'lucide-react';
 import { RevenueCatTier, SupportedLanguage } from '../types';
+import { revenueCat } from '../services/revenuecatService';
 import confetti from 'canvas-confetti';
 
 interface MonetizationHubProps {
@@ -47,13 +48,9 @@ export const MonetizationHub: React.FC<MonetizationHubProps> = ({
   };
 
   const handleApplyPromo = () => {
-    if (promoCode.trim().toUpperCase() === 'QUANTUM50') {
-      setDiscountPercent(50);
-      setPromoApplied(true);
-      setPromoError('');
-      confetti({ particleCount: 30, spread: 40 });
-    } else if (promoCode.trim().toUpperCase() === 'ALCATVIP') {
-      setDiscountPercent(30);
+    const res = revenueCat.applyPromoCode(promoCode);
+    if (res.success) {
+      setDiscountPercent(res.discountPercent);
       setPromoApplied(true);
       setPromoError('');
       confetti({ particleCount: 30, spread: 40 });
@@ -62,9 +59,10 @@ export const MonetizationHub: React.FC<MonetizationHubProps> = ({
     }
   };
 
-  const handleCompletePurchase = () => {
+  const handleCompletePurchase = async () => {
     if (!checkoutTier) return;
     setIsProcessing(true);
+    await revenueCat.purchaseTier(checkoutTier);
     setTimeout(() => {
       onSelectTier(checkoutTier);
       setIsProcessing(false);
