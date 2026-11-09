@@ -1,7 +1,7 @@
 {
   "engine": "REA_Reverse_Engineer_Anything",
   "status": "STRUCTURE_RECONSTRUCTED",
-  "analyzed_files": 48,
+  "analyzed_files": 50,
   "manifest": {
     "bun.lock": {
       "bytes": 73883
@@ -53,6 +53,12 @@
     },
     "public\\ALCAT_screenshot_1179x2556.png": {
       "bytes": 521701
+    },
+    "reports\\RAVEN_RSI_DIAGNOSTIC.json": {
+      "bytes": 341
+    },
+    "reports\\REA_ANALYSIS.json": {
+      "bytes": 3249
     },
     "scripts\\audit-crypto.mjs": {
       "bytes": 7196
@@ -148,5 +154,5 @@
       "bytes": 2660
     }
   },
-  "timestamp": 1793978429
+  "timestamp": 1794213068
 }
