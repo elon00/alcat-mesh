@@ -9,3 +9,6 @@ coverage/
 .system_generated/
 scratch/
 .netlify/
+
+# Lean 4 build artifacts
+lean_verify/.lake/
